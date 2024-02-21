@@ -1,45 +1,49 @@
+from ast import With
+from unittest import result
 import cv2 as cv
+import numpy as np
+import mediapipe as mp
 
-def start():
+lapis = mp.solutions.drawing_utils
+mpPose = mp.solutions.pose
+mpHand = mp.solutions.hands
+nail_ids = [4, 8, 12, 16, 20]
 
-    vid = cv.VideoCapture(2) 
+cap = cv.VideoCapture(1)
 
-    while(True): 
-        ret, frame = vid.read() 
+with mpPose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
+    with mpHand.Hands() as hand:
+        while cap.isOpened():
+            _, frame = cap.read()
 
-        cv.imshow('frame', frame) 
-        
-        if cv.waitKey(1) & 0xFF == ord('q'): 
-            break
+            img = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+            img.flags.writeable = False
 
-    vid.release() 
-    cv.destroyAllWindows() 
+            res_pose = pose.process(img)
+            res_hand = hand.process(img)
 
-def list_ports():
-    """
-    Test the ports and returns a tuple with the available ports and the ones that are working.
-    """
-    non_working_ports = []
-    dev_port = 0
-    working_ports = []
-    available_ports = []
+            img.flags.writeable = True
+            img = cv.cvtColor(img, cv.COLOR_RGB2BGR)
 
-    while len(non_working_ports) < 20: # if there are more than 5 non working ports stop the testing. 
-        camera = cv.VideoCapture(dev_port)
-        if not camera.isOpened():
-            non_working_ports.append(dev_port)
-            print("Port %s is not working." %dev_port)
-        else:
-            is_reading, img = camera.read()
-            w = camera.get(3)
-            h = camera.get(4)
-            if is_reading:
-                print("Port %s is working and reads images (%s x %s)" %(dev_port,h,w))
-                working_ports.append(dev_port)
-            else:
-                print("Port %s for camera ( %s x %s) is present but does not reads." %(dev_port,h,w))
-                available_ports.append(dev_port)
-        dev_port +=1
-    return available_ports,working_ports,non_working_ports
+            lapis.draw_landmarks(img, res_pose.pose_landmarks, mpPose.POSE_CONNECTIONS)
+            if res_hand.multi_hand_landmarks:
+                for handLms in res_hand.multi_hand_landmarks:
+                    for id, lm in enumerate (handLms.landmark):
+                        h, w, c = img.shape
+                        cx, cy = int(lm.x*w), int(lm.y*h)
+                        if id in nail_ids:
+                            cv.circle(img,(cx,cy),15, (255,0,255),cv.FILLED)
+                    lapis.draw_landmarks(img, handLms, mpHand.HAND_CONNECTIONS)
 
-start()
+            cv.imshow("CAM", img)
+
+            if cv.waitKey(1) & 0XFF == ord('q'):
+                break
+    
+    cap.release()
+    cv.destroyAllWindows()
+
+
+
+
+
