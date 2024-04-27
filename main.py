@@ -25,7 +25,11 @@ with mpHand.Hands() as hand:
                     h, w, c = img.shape
                     cx, cy = int(lm.x*w), int(lm.y*h)
                     if id in nail_ids:
-                        cv.circle(img,(cx,cy),15, (255,0,255),cv.FILLED)
+                        if (id == 4):
+                            print(f"cx: {cx}\tcy: {cy}")
+                            cv.circle(img,(cx,cy),15, (0, 255, 255),cv.FILLED)
+                        else:
+                            cv.circle(img,(cx,cy),15, (255, 0, 255),cv.FILLED)
                 lapis.draw_landmarks(img, handLms, mpHand.HAND_CONNECTIONS)
 
         cv.imshow("CAM", img)
